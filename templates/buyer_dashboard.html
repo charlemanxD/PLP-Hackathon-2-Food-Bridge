@@ -1,0 +1,414 @@
+{% extends "base.html" %}
+
+{% block title %}Buyer Dashboard - Food Bridge{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-5 fw-bold">
+                <i class="fas fa-shopping-cart text-success me-3"></i>
+                Buyer Marketplace
+            </h1>
+            <p class="text-muted">Discover fresh produce from local farmers</p>
+        </div>
+    </div>
+    
+    <!-- Search Bar -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('buyer_dashboard') }}" class="d-flex">
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="fas fa-search"></i>
+                            </span>
+                            <input type="text" class="form-control form-control-lg" 
+                                   name="search" 
+                                   placeholder="Search for food items (e.g., tomatoes, cabbage, rice...)" 
+                                   value="{{ search_query }}">
+                            <button class="btn btn-success btn-lg" type="submit">
+                                <i class="fas fa-search me-2"></i>Search
+                            </button>
+                        </div>
+                    </form>
+                    {% if search_query %}
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            Searching for: <strong>{{ search_query }}</strong>
+                            <a href="{{ url_for('buyer_dashboard') }}" class="text-decoration-none ms-2">
+                                <i class="fas fa-times"></i> Clear
+                            </a>
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- View Toggle and Results Header -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <h3 class="mb-0">
+                <i class="fas fa-leaf text-success me-2"></i>
+                Available Products
+            </h3>
+            <small class="text-muted">{{ listings_with_farmers|length }} item(s) found</small>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group" role="group" aria-label="View toggle">
+                <button type="button" class="btn btn-outline-secondary active" id="listViewBtn" onclick="switchView('list')">
+                    <i class="fas fa-list me-1"></i>List
+                </button>
+                <button type="button" class="btn btn-outline-secondary" id="gridViewBtn" onclick="switchView('grid')">
+                    <i class="fas fa-th me-1"></i>Grid
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Listings Display -->
+    <div id="listingsContainer">
+        {% if listings_with_farmers %}
+            <!-- List View (Default) -->
+            <div id="listView" class="listings-view">
+                {% for listing, farmer in listings_with_farmers %}
+                <div class="card mb-3 shadow-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h5 class="card-title mb-2">
+                                    <i class="fas fa-seedling text-success me-2"></i>
+                                    {{ listing.item_name }}
+                                </h5>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <p class="mb-1">
+                                            <strong><i class="fas fa-weight me-2"></i>Quantity:</strong> {{ listing.quantity }}
+                                        </p>
+                                        <p class="mb-1">
+                                            <strong><i class="fas fa-user me-2"></i>Farmer:</strong> {{ farmer.name }}
+                                        </p>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        {% if listing.price %}
+                                        <p class="mb-1">
+                                            <strong><i class="fas fa-dollar-sign me-2"></i>Price:</strong> 
+                                            <span class="text-success fw-bold">{{ listing.currency or 'USD' }} {{ "%.2f"|format(listing.price) }}</span>
+                                        </p>
+                                        {% endif %}
+                                        <p class="mb-1">
+                                            <strong><i class="fas fa-phone me-2"></i>Contact:</strong> {{ listing.contact }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Listed {{ listing.created_at.strftime('%B %d, %Y') }}
+                                </small>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <button type="button" class="btn btn-success btn-lg w-100" 
+                                        onclick="placeOrder('{{ listing.id }}', '{{ listing.item_name }}', '{{ farmer.name }}', {{ listing.price or 0 }}, '{{ listing.currency or 'USD' }}')">
+                                    <i class="fas fa-shopping-cart me-2"></i>
+                                    Place Order
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Grid View -->
+            <div id="gridView" class="listings-view" style="display: none;">
+                <div class="row">
+                    {% for listing, farmer in listings_with_farmers %}
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header text-center">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-seedling text-success me-2"></i>
+                                    {{ listing.item_name }}
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <strong><i class="fas fa-weight me-2"></i>Quantity:</strong> {{ listing.quantity }}
+                                </div>
+                                <div class="mb-2">
+                                    <strong><i class="fas fa-user me-2"></i>Farmer:</strong> {{ farmer.name }}
+                                </div>
+                                {% if listing.price %}
+                                <div class="mb-2">
+                                    <strong><i class="fas fa-dollar-sign me-2"></i>Price:</strong> 
+                                    <span class="text-success fw-bold">{{ listing.currency or 'USD' }} {{ "%.2f"|format(listing.price) }}</span>
+                                </div>
+                                {% endif %}
+                                <div class="mb-2">
+                                    <strong><i class="fas fa-phone me-2"></i>Contact:</strong> {{ listing.contact }}
+                                </div>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Listed {{ listing.created_at.strftime('%B %d, %Y') }}
+                                </small>
+                            </div>
+                            <div class="card-footer">
+                                <button type="button" class="btn btn-success w-100" 
+                                        onclick="placeOrder('{{ listing.id }}', '{{ listing.item_name }}', '{{ farmer.name }}', {{ listing.price or 0 }}, '{{ listing.currency or 'USD' }}')">
+                                    <i class="fas fa-shopping-cart me-2"></i>
+                                    Place Order
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">No products found</h4>
+                {% if search_query %}
+                <p class="text-muted">Try searching for different items or <a href="{{ url_for('buyer_dashboard') }}">view all products</a>.</p>
+                {% else %}
+                <p class="text-muted">No farmers have listed any products yet. Check back later!</p>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Order Modal -->
+<div class="modal fade" id="orderModal" tabindex="-1" aria-labelledby="orderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="orderModalLabel">
+                    <i class="fas fa-shopping-cart me-2"></i>Place Order
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    You're about to place an order for <strong id="orderItemName"></strong> from farmer <strong id="orderFarmerName"></strong>.
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Order Summary:</h6>
+                    <div class="border rounded p-3 bg-light">
+                        <div class="row">
+                            <div class="col-6"><strong>Item:</strong></div>
+                            <div class="col-6" id="orderSummaryItem"></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-6"><strong>Farmer:</strong></div>
+                            <div class="col-6" id="orderSummaryFarmer"></div>
+                        </div>
+                        <div class="row" id="orderPriceRow">
+                            <div class="col-6"><strong>Price:</strong></div>
+                            <div class="col-6 text-success fw-bold" id="orderSummaryPrice"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info" id="paymentInfo">
+                    <i class="fas fa-credit-card me-2"></i>
+                    <strong>Secure Payment with Paystack</strong><br>
+                    Complete your purchase securely using our integrated payment system. You'll be redirected to Paystack for safe payment processing.
+                </div>
+                
+                <div class="alert alert-warning" id="noPriceAlert" style="display: none;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>No price listed</strong><br>
+                    This item doesn't have a set price. Please contact the farmer directly using the contact information provided.
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="proceedWithPayment()" id="paymentBtn">
+                    <i class="fas fa-credit-card me-2"></i>Pay Now
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// View switching functionality
+function switchView(viewType) {
+    const listView = document.getElementById('listView');
+    const gridView = document.getElementById('gridView');
+    const listBtn = document.getElementById('listViewBtn');
+    const gridBtn = document.getElementById('gridViewBtn');
+    
+    if (viewType === 'list') {
+        listView.style.display = 'block';
+        gridView.style.display = 'none';
+        listBtn.classList.add('active');
+        gridBtn.classList.remove('active');
+        localStorage.setItem('foodbridge_view', 'list');
+    } else {
+        listView.style.display = 'none';
+        gridView.style.display = 'block';
+        listBtn.classList.remove('active');
+        gridBtn.classList.add('active');
+        localStorage.setItem('foodbridge_view', 'grid');
+    }
+}
+
+// Place order functionality
+function placeOrder(listingId, itemName, farmerName, price, currency) {
+    // Populate order details
+    document.getElementById('orderItemName').textContent = itemName;
+    document.getElementById('orderFarmerName').textContent = farmerName;
+    document.getElementById('orderSummaryItem').textContent = itemName;
+    document.getElementById('orderSummaryFarmer').textContent = farmerName;
+    
+    // Handle price display
+    const priceRow = document.getElementById('orderPriceRow');
+    const priceElement = document.getElementById('orderSummaryPrice');
+    const paymentBtn = document.getElementById('paymentBtn');
+    const paymentInfo = document.getElementById('paymentInfo');
+    const noPriceAlert = document.getElementById('noPriceAlert');
+    
+    if (price && price > 0) {
+        priceElement.textContent = `${currency} ${parseFloat(price).toFixed(2)}`;
+        priceRow.style.display = 'flex';
+        
+        // Store price data for payment processing
+        document.getElementById('orderModal').setAttribute('data-listing-id', listingId);
+        document.getElementById('orderModal').setAttribute('data-price', price);
+        document.getElementById('orderModal').setAttribute('data-currency', currency);
+        
+        // Show payment UI
+        paymentBtn.style.display = 'inline-block';
+        paymentBtn.disabled = false;
+        paymentInfo.style.display = 'block';
+        noPriceAlert.style.display = 'none';
+    } else {
+        priceRow.style.display = 'none';
+        
+        // Hide payment button if no price
+        paymentBtn.style.display = 'none';
+        paymentInfo.style.display = 'none';
+        noPriceAlert.style.display = 'block';
+        
+        // Store listing ID only
+        document.getElementById('orderModal').setAttribute('data-listing-id', listingId);
+        document.getElementById('orderModal').removeAttribute('data-price');
+        document.getElementById('orderModal').removeAttribute('data-currency');
+    }
+    
+    // Reset payment button state
+    resetPaymentButton();
+    
+    // Show the modal
+    const orderModal = new bootstrap.Modal(document.getElementById('orderModal'));
+    orderModal.show();
+}
+
+// Global variables for payment processing
+let currentListingId = null;
+let currentPrice = 0;
+let currentCurrency = 'USD';
+
+// Proceed with Paystack payment
+function proceedWithPayment() {
+    const listingId = document.getElementById('orderModal').getAttribute('data-listing-id');
+    const paymentBtn = document.getElementById('paymentBtn');
+    
+    // Disable button and show loading state
+    paymentBtn.disabled = true;
+    paymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    
+    // Get order details
+    const price = parseFloat(document.getElementById('orderModal').getAttribute('data-price') || 0);
+    const currency = document.getElementById('orderModal').getAttribute('data-currency') || 'USD';
+    
+    if (!price || price <= 0) {
+        alert('Invalid price. Please contact the farmer directly.');
+        resetPaymentButton();
+        return;
+    }
+    
+    // Prepare payment data
+    const paymentData = {
+        listing_id: listingId,
+        amount: price,
+        currency: currency
+    };
+    
+    // Initialize payment with backend
+    fetch('/paystack/initiate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(paymentData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Store payment reference for later verification
+            sessionStorage.setItem('payment_reference', data.reference);
+            
+            // Redirect to Paystack payment page
+            window.location.href = data.authorization_url;
+        } else {
+            alert(data.error || 'Failed to initialize payment. Please try again.');
+            resetPaymentButton();
+        }
+    })
+    .catch(error => {
+        console.error('Payment initialization error:', error);
+        alert('Payment service is currently unavailable. Please try again later.');
+        resetPaymentButton();
+    });
+}
+
+// Reset payment button to original state
+function resetPaymentButton() {
+    const paymentBtn = document.getElementById('paymentBtn');
+    paymentBtn.disabled = false;
+    paymentBtn.innerHTML = '<i class="fas fa-credit-card me-2"></i>Pay Now';
+}
+
+// Load saved view preference
+document.addEventListener('DOMContentLoaded', function() {
+    const savedView = localStorage.getItem('foodbridge_view');
+    if (savedView === 'grid') {
+        switchView('grid');
+    }
+});
+
+// Search functionality enhancements
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input[name="search"]');
+    
+    // Auto-focus search input on page load
+    if (searchInput && !searchInput.value) {
+        searchInput.focus();
+    }
+    
+    // Search suggestions (basic)
+    const commonItems = ['tomatoes', 'cabbage', 'rice', 'beans', 'corn', 'potatoes', 'onions', 'peppers', 'lettuce', 'carrots'];
+    
+    searchInput.addEventListener('input', function() {
+        // This could be enhanced with a proper autocomplete library
+        // For now, we'll keep it simple
+    });
+});
+
+console.log('Buyer Dashboard JS loaded successfully');
+</script>
+{% endblock %}

@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Food Bridge{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="display-5 fw-bold">
+                <i class="fas fa-tractor text-success me-3"></i>
+                Farmer Dashboard
+            </h1>
+            <p class="text-muted">Manage your agricultural listings and connect with buyers</p>
+        </div>
+    </div>
+    
+    <!-- Section Navigation -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="btn-group w-100" role="group" aria-label="Dashboard sections">
+                <button type="button" class="btn btn-outline-primary active" id="createListingBtn" onclick="showSection('create')">
+                    <i class="fas fa-plus-circle me-2"></i>Create New Listing
+                </button>
+                <button type="button" class="btn btn-outline-primary" id="currentListingsBtn" onclick="showSection('current')">
+                    <i class="fas fa-list me-2"></i>My Current Listings
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Create New Listing Section -->
+    <div id="createSection" class="section-content">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-seedling text-success me-2"></i>
+                            Create New Listing
+                        </h3>
+                    </div>
+                    
+                    <div class="card-body">
+                        <form method="POST" action="{{ url_for('create_listing') }}" id="createListingForm">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="itemName" class="form-label">
+                                        <i class="fas fa-apple-alt me-2"></i>Item Name *
+                                    </label>
+                                    <input type="text" class="form-control" id="itemName" name="item_name" required placeholder="e.g., Organic Tomatoes">
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="quantity" class="form-label">
+                                        <i class="fas fa-weight me-2"></i>Quantity *
+                                    </label>
+                                    <input type="text" class="form-control" id="quantity" name="quantity" required placeholder="e.g., 50 kg, 100 boxes">
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-8 mb-3">
+                                    <label for="price" class="form-label">
+                                        <i class="fas fa-dollar-sign me-2"></i>Price
+                                    </label>
+                                    <input type="number" step="0.01" class="form-control" id="price" name="price" placeholder="e.g., 25.00">
+                                </div>
+                                
+                                <div class="col-md-4 mb-3">
+                                    <label for="currency" class="form-label">Currency</label>
+                                    <select class="form-select" id="currency" name="currency">
+                                        <option value="USD">USD</option>
+                                        <option value="EUR">EUR</option>
+                                        <option value="CAD">CAD</option>
+                                        <option value="GHS">GHS</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="contact" class="form-label">
+                                    <i class="fas fa-phone me-2"></i>Contact Information *
+                                </label>
+                                <input type="text" class="form-control" id="contact" name="contact" required placeholder="Phone number, email, or address">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isAvailable" name="is_available" checked>
+                                    <label class="form-check-label" for="isAvailable">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Item is currently available
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-plus-circle me-2"></i>Create Listing
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Current Listings Section -->
+    <div id="currentSection" class="section-content" style="display: none;">
+        <div class="row">
+            <div class="col">
+                <div class="card shadow">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0">
+                            <i class="fas fa-list text-primary me-2"></i>
+                            My Current Listings
+                        </h3>
+                        <span class="badge bg-secondary">{{ listings|length }} listing(s)</span>
+                    </div>
+                    
+                    <div class="card-body">
+                        {% if listings %}
+                            <div class="row">
+                                {% for listing in listings %}
+                                <div class="col-lg-6 mb-4">
+                                    <div class="card h-100 {% if not listing.is_available %}border-warning{% endif %}">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0">{{ listing.item_name }}</h5>
+                                            <span class="badge bg-{% if listing.is_available %}success{% else %}warning{% endif %}">
+                                                {% if listing.is_available %}Available{% else %}Unavailable{% endif %}
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="card-body">
+                                            <div class="mb-2">
+                                                <strong><i class="fas fa-weight me-2"></i>Quantity:</strong> {{ listing.quantity }}
+                                            </div>
+                                            {% if listing.price %}
+                                            <div class="mb-2">
+                                                <strong><i class="fas fa-dollar-sign me-2"></i>Price:</strong> {{ listing.currency or 'USD' }} {{ "%.2f"|format(listing.price) }}
+                                            </div>
+                                            {% endif %}
+                                            <div class="mb-2">
+                                                <strong><i class="fas fa-phone me-2"></i>Contact:</strong> {{ listing.contact }}
+                                            </div>
+                                            <div class="mb-3">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-calendar me-2"></i>
+                                                    Created: {{ listing.created_at.strftime('%B %d, %Y at %I:%M %p') }}
+                                                </small>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="card-footer">
+                                            <div class="btn-group w-100" role="group">
+                                                <button type="button" class="btn btn-outline-primary btn-sm" 
+                                                        onclick="editListing('{{ listing.id }}', '{{ listing.item_name }}', '{{ listing.quantity }}', '{{ listing.contact }}', {{ listing.is_available|lower }}, {{ listing.price or 'null' }}, '{{ listing.currency or 'USD' }}')">
+                                                    <i class="fas fa-edit me-1"></i>Edit
+                                                </button>
+                                                <button type="button" class="btn btn-outline-danger btn-sm" 
+                                                        onclick="deleteListing('{{ listing.id }}', '{{ listing.item_name }}')">
+                                                    <i class="fas fa-trash me-1"></i>Delete
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-seedling fa-3x text-muted mb-3"></i>
+                                <h4 class="text-muted">No listings found</h4>
+                                <p class="text-muted">Create your first listing to start connecting with buyers!</p>
+                                <button type="button" class="btn btn-success" onclick="showSection('create')">
+                                    <i class="fas fa-plus-circle me-2"></i>Create Your First Listing
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Listing Modal -->
+<div class="modal fade" id="editListingModal" tabindex="-1" aria-labelledby="editListingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editListingModalLabel">
+                    <i class="fas fa-edit me-2"></i>Edit Listing
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <form id="editListingForm" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editItemName" class="form-label">
+                            <i class="fas fa-apple-alt me-2"></i>Item Name *
+                        </label>
+                        <input type="text" class="form-control" id="editItemName" name="item_name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editQuantity" class="form-label">
+                            <i class="fas fa-weight me-2"></i>Quantity *
+                        </label>
+                        <input type="text" class="form-control" id="editQuantity" name="quantity" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="editPrice" class="form-label">
+                                <i class="fas fa-dollar-sign me-2"></i>Price
+                            </label>
+                            <input type="number" step="0.01" class="form-control" id="editPrice" name="price">
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="editCurrency" class="form-label">Currency</label>
+                            <select class="form-select" id="editCurrency" name="currency">
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="CAD">CAD</option>
+                                <option value="GHS">GHS</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editContact" class="form-label">
+                            <i class="fas fa-phone me-2"></i>Contact Information *
+                        </label>
+                        <input type="text" class="form-control" id="editContact" name="contact" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editIsAvailable" name="is_available">
+                            <label class="form-check-label" for="editIsAvailable">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Item is currently available
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="deleteConfirmModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Delete
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body">
+                <p>Are you sure you want to delete the listing <strong id="deleteItemName"></strong>?</p>
+                <p class="text-muted">This action cannot be undone.</p>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteListingForm" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Delete Listing
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Transaction Status - Food Bridge{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Transaction Header -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-receipt me-2"></i>Transaction Details
+                        </h5>
+                        <span id="statusBadge" class="badge 
+                            {% if transaction.status == 'success' %}bg-success
+                            {% elif transaction.status == 'pending' %}bg-warning
+                            {% elif transaction.status == 'failed' %}bg-danger
+                            {% else %}bg-secondary{% endif %}">
+                            {{ transaction.status.title() }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Status Message -->
+                    <div id="statusMessage" class="alert 
+                        {% if transaction.status == 'success' %}alert-success
+                        {% elif transaction.status == 'pending' %}alert-warning
+                        {% elif transaction.status == 'failed' %}alert-danger
+                        {% else %}alert-info{% endif %} mb-4">
+                        
+                        {% if transaction.status == 'pending' %}
+                            <div class="d-flex align-items-center">
+                                <div class="spinner-border spinner-border-sm me-3" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div>
+                                    <strong>Payment received, confirming transaction details...</strong><br>
+                                    <small>Please wait while we verify your payment with our secure payment processor.</small>
+                                </div>
+                            </div>
+                        {% elif transaction.status == 'success' %}
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Payment Successful!</strong> Your transaction has been completed successfully.
+                        {% elif transaction.status == 'failed' %}
+                            <i class="fas fa-times-circle me-2"></i>
+                            <strong>Payment Failed.</strong> There was an issue processing your payment.
+                        {% else %}
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Processing...</strong> Your transaction is being processed.
+                        {% endif %}
+                    </div>
+
+                    <!-- Transaction Details -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Transaction Reference</h6>
+                            <p class="mb-3"><code>{{ transaction.reference }}</code></p>
+                            
+                            <h6 class="text-muted">Amount</h6>
+                            <p class="mb-3 h5 text-success">{{ transaction.currency }} {{ "%.2f"|format(transaction.amount) }}</p>
+                            
+                            {% if transaction.status == 'success' %}
+                            <h6 class="text-muted">Payment Date</h6>
+                            <p class="mb-3">{{ transaction.updated_at.strftime('%B %d, %Y at %I:%M %p') if transaction.updated_at else 'Processing...' }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Item Purchased</h6>
+                            <p class="mb-3">{{ transaction.item_name }}</p>
+                            
+                            <h6 class="text-muted">Supplier</h6>
+                            <p class="mb-3">{{ transaction.supplier_name }}</p>
+                            
+                            <h6 class="text-muted">Transaction Started</h6>
+                            <p class="mb-3">{{ transaction.created_at.strftime('%B %d, %Y at %I:%M %p') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Item Details Card -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-box me-2"></i>Item Details
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h5>{{ listing.item_name }}</h5>
+                            <p class="text-muted mb-2">{{ listing.description or 'No description available' }}</p>
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <small class="text-muted">Category:</small><br>
+                                    <span>{{ listing.category or 'Not specified' }}</span>
+                                </div>
+                                <div class="col-sm-6">
+                                    <small class="text-muted">Quantity:</small><br>
+                                    <span>{{ listing.quantity or 'Not specified' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="mb-2">
+                                <small class="text-muted">Supplier Contact:</small><br>
+                                <strong>{{ supplier.name }}</strong>
+                            </div>
+                            {% if supplier.phone %}
+                            <div class="mb-2">
+                                <small class="text-muted">Phone:</small><br>
+                                <a href="tel:{{ supplier.phone }}" class="text-decoration-none">{{ supplier.phone }}</a>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <small class="text-muted">Email:</small><br>
+                                <a href="mailto:{{ supplier.email }}" class="text-decoration-none">{{ supplier.email }}</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="text-center mb-4">
+                <a href="{{ url_for('buyer_dashboard') }}" class="btn btn-outline-primary me-3">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+                {% if transaction.status == 'success' %}
+                <button onclick="printTransaction()" class="btn btn-success">
+                    <i class="fas fa-print me-2"></i>Print Receipt
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let pollingInterval = null;
+const transactionReference = '{{ transaction.reference }}';
+const currentStatus = '{{ transaction.status }}';
+
+// Start polling if transaction is pending
+if (currentStatus === 'pending') {
+    startPolling();
+}
+
+function startPolling() {
+    pollingInterval = setInterval(checkTransactionStatus, 5000); // Poll every 5 seconds
+}
+
+function stopPolling() {
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+    }
+}
+
+function checkTransactionStatus() {
+    fetch(`/api/transaction-status/${transactionReference}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status !== 'pending') {
+                // Status changed, reload the page to show updated details
+                stopPolling();
+                location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error checking transaction status:', error);
+            // Continue polling despite errors
+        });
+}
+
+function printTransaction() {
+    window.print();
+}
+
+// Clean up polling when page is unloaded
+window.addEventListener('beforeunload', function() {
+    stopPolling();
+});
+
+// Stop polling when page becomes hidden
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        stopPolling();
+    } else if (currentStatus === 'pending') {
+        startPolling();
+    }
+});
+</script>
+
+<style>
+@media print {
+    .btn, .card-header {
+        display: none !important;
+    }
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+{% endblock %}
