@@ -3,6 +3,8 @@
 Bridging Food Suppliers and Communities 
 This project is a marketplace platform that connects food suppliers (like farms and local markets) with charities, individuals, and communities in need, ensuring excess produce finds its way to those who need it most. Our goal is to reduce food insecurity, food waste, and build a more sustainable local food ecosystem.
 
+<img width="1416" height="984" alt="# PLP-Hackathon-2-Food-Bridge - visual selection" src="https://github.com/user-attachments/assets/065e230e-ff5c-4783-837e-3f26f5733174" />
+
 🚀 The Tech Stack
 We've built this application using a modern, scalable, and high-performance tech stack. This app was "vibe-coded" on Replit, a collaborative and fast-paced development environment.
 
